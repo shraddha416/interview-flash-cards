@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SWE Cards">
+<title>SWE Flashcards</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
+<style>
+  :root {
+    --bg: #0f0f13;
+    --surface: #1a1a24;
+    --surface2: #22222f;
+    --accent: #7c6af7;
+    --accent2: #5eead4;
+    --danger: #f87171;
+    --success: #4ade80;
+    --warning: #fbbf24;
+    --text: #f1f1f5;
+    --text2: #9999b3;
+    --border: #2e2e42;
+    --radius: 16px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-top: env(safe-area-inset-top, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif; overflow: hidden; }
+
+  /* LAYOUT */
+  #app { height: 100vh; display: flex; flex-direction: column; }
+  #header { padding: calc(var(--safe-top) + 12px) 20px 12px; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  #header h1 { font-size: 18px; font-weight: 700; }
+  #header p { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  #content { flex: 1; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; padding: 16px; padding-bottom: calc(80px + var(--safe-bottom)); }
+  #nav { position: fixed; bottom: 0; left: 0; right: 0; height: calc(60px + var(--safe-bottom)); background: var(--surface); border-top: 1px solid var(--border); display: flex; align-items: flex-start; padding-top: 8px; z-index: 100; }
+  .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; color: var(--text2); font-size: 10px; font-weight: 500; cursor: pointer; transition: color .2s; padding: 4px 0; }
+  .nav-btn.active { color: var(--accent); }
+  .nav-btn svg { width: 22px; height: 22px; }
+
+  /* TABS / PAGES */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* CATEGORY CHIPS */
+  .cat-scroll { display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 16px; padding-bottom: 4px; scrollbar-width: none; }
+  .cat-scroll::-webkit-scrollbar { display: none; }
+  .cat-chip { white-space: nowrap; padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--surface); font-size: 13px; font-weight: 500; cursor: pointer; transition: all .2s; color: var(--text2); }
+  .cat-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* STUDY CARD */
+  .study-area { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .progress-bar { width: 100%; height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .4s ease; }
+  .progress-label { width: 100%; display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); }
+
+  .card-scene { width: 100%; max-width: 380px; height: 220px; perspective: 1000px; cursor: pointer; }
+  .card-inner { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.55s cubic-bezier(.4,0,.2,1); }
+  .card-scene.flipped .card-inner { transform: rotateY(180deg); }
+  .card-face { position: absolute; inset: 0; border-radius: var(--radius); padding: 20px; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+  .card-front { background: linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%); border: 1px solid var(--border); }
+  .card-back { background: linear-gradient(135deg, #1a1a35 0%, #0d1a2e 100%); border: 1px solid var(--accent); transform: rotateY(180deg); }
+  .card-tag { font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; background: rgba(124,106,247,.15); padding: 3px 10px; border-radius: 10px; }
+  .card-question { font-size: 15px; font-weight: 600; line-height: 1.4; color: var(--text); }
+  .card-answer { font-size: 13px; line-height: 1.6; color: var(--text2); }
+  .card-answer strong { color: var(--accent2); }
+  .card-hint { font-size: 11px; color: var(--text2); margin-top: 8px; opacity: .7; }
+  .card-img { max-height: 100px; max-width: 100%; border-radius: 8px; object-fit: contain; margin-bottom: 8px; }
+
+  .action-row { display: flex; gap: 12px; width: 100%; max-width: 380px; }
+  .action-btn { flex: 1; padding: 14px; border-radius: var(--radius); border: none; font-size: 14px; font-weight: 600; cursor: pointer; transition: all .15s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .btn-skip { background: var(--surface2); color: var(--text2); }
+  .btn-know { background: linear-gradient(135deg, #166534, #15803d); color: #fff; }
+  .btn-skip:active { transform: scale(0.97); }
+  .btn-know:active { transform: scale(0.97); }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text2); }
+  .empty-state svg { margin-bottom: 12px; opacity: .4; }
+  .empty-state h3 { font-size: 16px; color: var(--text); margin-bottom: 6px; }
+  .empty-state p { font-size: 13px; }
+
+  /* CARDS LIST */
+  .cards-list { display: flex; flex-direction: column; gap: 10px; }
+  .card-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .card-item-body { flex: 1; min-width: 0; }
+  .card-item-q { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-item-a { font-size: 12px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-item-tag { font-size: 10px; color: var(--accent); background: rgba(124,106,247,.12); padding: 2px 8px; border-radius: 8px; white-space: nowrap; }
+  .card-item-del { background: none; border: none; color: var(--text2); cursor: pointer; padding: 4px; border-radius: 8px; }
+  .card-item-del:active { color: var(--danger); }
+
+  /* ADD CARD */
+  .add-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
+  .add-section h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+  .form-group { margin-bottom: 12px; }
+  .form-group label { font-size: 12px; color: var(--text2); margin-bottom: 6px; display: block; }
+  .form-group input, .form-group textarea, .form-group select {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 12px; color: var(--text); font-size: 14px; font-family: inherit; outline: none;
+    -webkit-appearance: none; transition: border-color .2s;
+  }
+  .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: var(--accent); }
+  .form-group textarea { resize: none; min-height: 80px; }
+  .btn-primary { width: 100%; padding: 14px; background: var(--accent); border: none; border-radius: var(--radius); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity .15s; }
+  .btn-primary:active { opacity: .8; }
+  .btn-secondary { width: 100%; padding: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn-secondary:active { opacity: .8; }
+
+  /* IMAGE UPLOAD */
+  #img-preview-wrap { display: none; margin-top: 10px; }
+  #img-preview { width: 100%; max-height: 160px; object-fit: contain; border-radius: 10px; }
+  #ocr-result { display: none; }
+  #ocr-status { font-size: 12px; color: var(--text2); margin-top: 6px; }
+
+  /* STATS */
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; text-align: center; }
+  .stat-num { font-size: 28px; font-weight: 700; }
+  .stat-label { font-size: 12px; color: var(--text2); margin-top: 4px; }
+  .stat-num.accent { color: var(--accent); }
+  .stat-num.success { color: var(--success); }
+  .stat-num.warning { color: var(--warning); }
+  .stat-num.danger { color: var(--danger); }
+
+  .streak-bar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
+  .streak-bar h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+  .cat-progress { margin-bottom: 10px; }
+  .cat-progress-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+  .cat-progress-bar { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  .cat-progress-fill { height: 100%; border-radius: 3px; }
+
+  /* TOAST */
+  #toast { position: fixed; top: calc(var(--safe-top) + 60px); left: 50%; transform: translateX(-50%) translateY(-20px); background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 8px 18px; font-size: 13px; font-weight: 500; opacity: 0; transition: all .3s; z-index: 200; pointer-events: none; white-space: nowrap; }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* MODAL */
+  #modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 300; align-items: flex-end; }
+  #modal-overlay.open { display: flex; }
+  #modal { background: var(--surface); border-radius: 20px 20px 0 0; padding: 20px; padding-bottom: calc(20px + var(--safe-bottom)); width: 100%; max-height: 80vh; overflow-y: auto; }
+  #modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+  .modal-close { float: right; background: var(--surface2); border: none; border-radius: 50%; width: 28px; height: 28px; color: var(--text2); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+  /* Swipe hint */
+  .swipe-hint { font-size: 11px; color: var(--text2); text-align: center; }
+
+  /* Loading spinner */
+  .spinner { width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-row { display: flex; align-items: center; gap: 10px; padding: 12px; }
+
+  option { background: var(--surface2); }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <h1 id="page-title">📚 Study</h1>
+    <p id="page-sub">Tap card to flip • Swipe to navigate</p>
+  </div>
+  <div id="content">
+
+    <!-- STUDY PAGE -->
+    <div class="page active" id="page-study">
+      <div class="cat-scroll" id="study-cats"></div>
+      <div class="study-area" id="study-area"></div>
+    </div>
+
+    <!-- CARDS PAGE -->
+    <div class="page" id="page-cards">
+      <div class="cat-scroll" id="cards-cats"></div>
+      <div class="cards-list" id="cards-list"></div>
+    </div>
+
+    <!-- ADD PAGE -->
+    <div class="page" id="page-add">
+      <!-- Manual Add -->
+      <div class="add-section">
+        <h3>✏️ Add Manually</h3>
+        <div class="form-group">
+          <label>Category</label>
+          <select id="add-cat">
+            <option value="frontend">Frontend System Design</option>
+            <option value="dsalgo">DS / Algo</option>
+            <option value="behavioral">Behavioral</option>
+            <option value="leetcode">LeetCode Tips</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Question / Concept</label>
+          <textarea id="add-q" placeholder="e.g. What is virtual DOM?"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Answer / Key Points</label>
+          <textarea id="add-a" placeholder="e.g. Lightweight JS object representation of DOM..."></textarea>
+        </div>
+        <button class="btn-primary" onclick="addCardManual()">Add Card</button>
+      </div>
+
+      <!-- Image to Card -->
+      <div class="add-section">
+        <h3>📸 Photo → Flashcard</h3>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">Take a photo of notes, a whiteboard, or screenshot — the app will extract the text and generate flashcards.</p>
+        <input type="file" id="img-input" accept="image/*" capture="environment" style="display:none" onchange="handleImage(event)">
+        <button class="btn-secondary" onclick="document.getElementById('img-input').click()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          Take Photo / Choose Image
+        </button>
+        <div id="img-preview-wrap"><img id="img-preview" alt="preview"></div>
+        <div id="ocr-status"></div>
+        <div id="ocr-result">
+          <div class="form-group" style="margin-top:12px;">
+            <label>Extracted Text (edit if needed)</label>
+            <textarea id="ocr-text" style="min-height:120px;"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Category</label>
+            <select id="ocr-cat">
+              <option value="frontend">Frontend System Design</option>
+              <option value="dsalgo">DS / Algo</option>
+              <option value="behavioral">Behavioral</option>
+              <option value="leetcode">LeetCode Tips</option>
+            </select>
+          </div>
+          <button class="btn-primary" onclick="generateFromOCR()">✨ Generate Flashcards</button>
+        </div>
+      </div>
+
+      <!-- Text Paste -->
+      <div class="add-section">
+        <h3>📋 Paste Text → Cards</h3>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">Paste any notes, article or bullet points and the app will create flashcards from them.</p>
+        <div class="form-group">
+          <label>Category</label>
+          <select id="paste-cat">
+            <option value="frontend">Frontend System Design</option>
+            <option value="dsalgo">DS / Algo</option>
+            <option value="behavioral">Behavioral</option>
+            <option value="leetcode">LeetCode Tips</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Paste your notes</label>
+          <textarea id="paste-text" style="min-height:140px;" placeholder="• Virtual DOM is a lightweight copy of the real DOM&#10;• React reconciliation uses diffing algorithm&#10;• useState triggers re-render..."></textarea>
+        </div>
+        <button class="btn-primary" onclick="generateFromText()">✨ Generate Flashcards</button>
+      </div>
+    </div>
+
+    <!-- STATS PAGE -->
+    <div class="page" id="page-stats">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-num accent" id="stat-total">0</div><div class="stat-label">Total Cards</div></div>
+        <div class="stat-card"><div class="stat-num success" id="stat-known">0</div><div class="stat-label">Mastered</div></div>
+        <div class="stat-card"><div class="stat-num warning" id="stat-streak">0</div><div class="stat-label">Day Streak 🔥</div></div>
+        <div class="stat-card"><div class="stat-num danger" id="stat-due">0</div><div class="stat-label">Due Today</div></div>
+      </div>
+      <div class="streak-bar">
+        <h3>Progress by Category</h3>
+        <div id="cat-progress-list"></div>
+      </div>
+      <button class="btn-secondary" style="margin-bottom:10px;" onclick="resetProgress()">🔄 Reset Study Progress</button>
+      <button class="btn-secondary" style="color:var(--danger);border-color:var(--danger);" onclick="clearAll()">🗑️ Clear All Custom Cards</button>
+    </div>
+
+  </div>
+  <nav id="nav">
+    <button class="nav-btn active" onclick="goTo('study',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Study
+    </button>
+    <button class="nav-btn" onclick="goTo('cards',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 11H5M19 6H5M19 16H5M19 21H5"/></svg>Cards
+    </button>
+    <button class="nav-btn" onclick="goTo('add',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>Add
+    </button>
+    <button class="nav-btn" onclick="goTo('stats',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>Stats
+    </button>
+  </nav>
+</div>
+<div id="toast"></div>
+<div id="modal-overlay" onclick="closeModal()">
+  <div id="modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3 id="modal-title">Card Detail</h3>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const CATEGORIES = {
+  frontend: { label: 'Frontend SD', color: '#7c6af7' },
+  dsalgo:   { label: 'DS / Algo',   color: '#5eead4' },
+  behavioral: { label: 'Behavioral', color: '#fbbf24' },
+  leetcode: { label: 'LeetCode',    color: '#f87171' },
+};
+
+const SEED_CARDS = [
+  // ---- FRONTEND SYSTEM DESIGN ----
+  { id:'f1', cat:'frontend', q:'What are Core Web Vitals and their thresholds?', a:'<strong>LCP</strong> (Largest Contentful Paint) &lt;2.5s • <strong>INP</strong> (Interaction to Next Paint) &lt;200ms • <strong>CLS</strong> (Cumulative Layout Shift) &lt;0.1. These directly affect SEO and user experience.' },
+  { id:'f2', cat:'frontend', q:'SSR vs SSG vs CSR — when to use each?', a:'<strong>SSR</strong>: dynamic, SEO-critical, per-request data (e-commerce). <strong>SSG</strong>: static, rarely-changing content (docs, blogs). <strong>CSR</strong>: dashboards, behind-auth apps where SEO doesn\'t matter.' },
+  { id:'f3', cat:'frontend', q:'How does React reconciliation work?', a:'React creates a virtual DOM diffing tree. On state change it runs a <strong>diffing algorithm</strong> comparing old vs new vDOM. Only real DOM nodes that changed are updated. Key prop helps identify list items to avoid full re-renders.' },
+  { id:'f4', cat:'frontend', q:'Micro-frontend architecture — key patterns?', a:'<strong>Module Federation</strong> (Webpack 5): share code at runtime. <strong>iFrame</strong>: strict isolation. <strong>Web Components</strong>: framework-agnostic. Main challenge: shared state, routing, auth, and deployment coordination.' },
+  { id:'f5', cat:'frontend', q:'How would you design a real-time collaborative editor?', a:'<strong>OT (Operational Transform)</strong> or <strong>CRDTs</strong> for conflict resolution. WebSockets for low-latency sync. Presence via cursor positions. Optimistic updates + server reconciliation. Think Google Docs architecture.' },
+  { id:'f6', cat:'frontend', q:'Code splitting strategies in React?', a:'<strong>Route-level</strong>: React.lazy + Suspense per route. <strong>Component-level</strong>: lazy load heavy widgets. <strong>Library</strong>: split vendor chunks. Use dynamic import(). Measure with Lighthouse bundle analysis.' },
+  { id:'f7', cat:'frontend', q:'How to prevent XSS and CSRF attacks?', a:'<strong>XSS</strong>: sanitize user input, use CSP headers, avoid dangerouslySetInnerHTML. <strong>CSRF</strong>: SameSite cookies, CSRF tokens, verify Origin header. Always encode output and validate server-side.' },
+  { id:'f8', cat:'frontend', q:'Design a design system from scratch — key decisions?', a:'Token system (color, spacing, typography). Component API design. Accessibility (WCAG 2.1 AA). Storybook for documentation. Versioning strategy. Monorepo with Lerna/Turborepo. Theming support.' },
+  { id:'f9', cat:'frontend', q:'Service Workers — what can they do?', a:'Run in background thread. Enable <strong>offline caching</strong> (Cache API), background sync, push notifications. Intercept network requests. PWA foundation. Must be HTTPS. Lifecycle: install → activate → fetch.' },
+  { id:'f10', cat:'frontend', q:'How to optimize bundle size?', a:'Tree shaking (ES modules). Code splitting. Lazy loading. Analyze with webpack-bundle-analyzer. Replace heavy libs (moment → date-fns). Use dynamic imports. Enable gzip/brotli. Preload critical resources.' },
+  { id:'f11', cat:'frontend', q:'What is the event loop in JavaScript?', a:'JS is single-threaded. Call stack runs sync code. Web APIs handle async. Microtask queue (Promises, queueMicrotask) drains before macrotask queue (setTimeout, setInterval). Ensures non-blocking behavior.' },
+  { id:'f12', cat:'frontend', q:'Explain React hooks — useState, useEffect, useMemo, useCallback?', a:'<strong>useState</strong>: local state. <strong>useEffect</strong>: side effects, runs after render. <strong>useMemo</strong>: memoize expensive calc. <strong>useCallback</strong>: stable function reference. Rule: only call at top level, only in function components.' },
+  { id:'f13', cat:'frontend', q:'How do you handle state in large React apps?', a:'Local state (useState). Lifted state for sibling sharing. Context for global non-perf-sensitive state. <strong>Redux/Zustand</strong> for complex global state. React Query / SWR for server state. Avoid over-engineering.' },
+  { id:'f14', cat:'frontend', q:'What is HTTPS, TLS handshake briefly?', a:'Client sends ClientHello. Server responds with certificate. Key exchange (ECDHE). Both derive session keys. Symmetric encryption from then on. Prevents MITM. TLS 1.3 is faster (1 RTT).' },
+  { id:'f15', cat:'frontend', q:'How does browser rendering work? CRP?', a:'<strong>Critical Rendering Path</strong>: Parse HTML → DOM. Parse CSS → CSSOM. Combine → Render Tree. Layout (geometry). Paint (pixels). Composite layers. Optimize by removing render-blocking resources, reducing reflows.' },
+
+  // ---- DS / ALGO ----
+  { id:'d1', cat:'dsalgo', q:'Time complexities to memorize', a:'Array access O(1) • Hash lookup O(1) avg • Binary search O(log n) • Sorting O(n log n) • BFS/DFS O(V+E) • Quicksort avg O(n log n) worst O(n²) • Heap ops O(log n)' },
+  { id:'d2', cat:'dsalgo', q:'When to use BFS vs DFS?', a:'<strong>BFS</strong>: shortest path in unweighted graph, level-order traversal, nearest neighbor. <strong>DFS</strong>: detect cycles, topological sort, backtracking, maze solving, connected components. BFS uses queue, DFS uses stack/recursion.' },
+  { id:'d3', cat:'dsalgo', q:'Dynamic Programming — how to identify?', a:'Ask: overlapping subproblems? Optimal substructure? If yes → DP. Steps: 1) Define state 2) Recurrence relation 3) Base case 4) Order of computation. Top-down (memo) vs Bottom-up (tabulation).' },
+  { id:'d4', cat:'dsalgo', q:'Sliding Window pattern — when and how?', a:'Use for contiguous subarray/substring problems. Fixed window: slide by 1. Variable window: expand right, shrink left when condition breaks. Track state with hashmap/counter. O(n) instead of O(n²).' },
+  { id:'d5', cat:'dsalgo', q:'Two Pointers — key variants?', a:'<strong>Opposite ends</strong>: sorted array, two-sum, palindrome. <strong>Same direction (fast/slow)</strong>: cycle detection, nth from end. <strong>Partition</strong>: Dutch flag, 3-way sort. Usually O(n) time O(1) space.' },
+  { id:'d6', cat:'dsalgo', q:'Binary Search — exact template?', a:'lo=0, hi=n-1. while lo≤hi: mid=(lo+hi)//2. if arr[mid]==target return mid. if arr[mid]<target lo=mid+1. else hi=mid-1. For first/last occurrence: adjust to not return early, update result.' },
+  { id:'d7', cat:'dsalgo', q:'Graph algorithms — Dijkstra vs Bellman-Ford?', a:'<strong>Dijkstra</strong>: no negative edges, O((V+E)logV) with min-heap. Greedy. <strong>Bellman-Ford</strong>: handles negative edges, detects negative cycles, O(VE). <strong>Floyd-Warshall</strong>: all-pairs O(V³).' },
+  { id:'d8', cat:'dsalgo', q:'Tree traversals and their uses?', a:'<strong>Inorder</strong> (L-Root-R): BST gives sorted order. <strong>Preorder</strong> (Root-L-R): copy tree, prefix expression. <strong>Postorder</strong> (L-R-Root): delete tree, evaluate expression. <strong>Level-order</strong>: BFS, shortest path.' },
+  { id:'d9', cat:'dsalgo', q:'Heap / Priority Queue patterns?', a:'Top-K problems: use min-heap of size K. Merge K sorted lists. Median maintenance: two heaps. Running max/min. Scheduling (tasks with priorities). In JS: implement with array, parent=(i-1)/2, children=2i+1, 2i+2.' },
+  { id:'d10', cat:'dsalgo', q:'Union-Find (Disjoint Set Union) — when?', a:'Connected components, cycle detection in undirected graph, Kruskal\'s MST. Operations: find(x) with path compression, union(x,y) by rank. Nearly O(1) amortized (inverse Ackermann).' },
+  { id:'d11', cat:'dsalgo', q:'Trie — when to use?', a:'Prefix-based search (autocomplete). Word validation. IP routing. Word search II. O(m) insert/search where m=word length. Space-heavy but fast. Prefix problems that need sharing common prefixes.' },
+  { id:'d12', cat:'dsalgo', q:'Backtracking template?', a:'function bt(state): if isGoal(state): result.add(state); return. for choice in choices: if isValid(choice): applyChoice. bt(newState). undoChoice. Prune early with constraints. Permutations, subsets, N-Queens, Sudoku.' },
+
+  // ---- BEHAVIORAL ----
+  { id:'b1', cat:'behavioral', q:'Tell me about yourself (senior SWE pitch)?', a:'Structure: <strong>Current role + impact</strong> → <strong>key technical depth</strong> (systems/scale you\'ve worked on) → <strong>what you\'re seeking</strong>. 90 seconds max. Lead with impact numbers. E.g. "Led frontend infra serving 10M users, reduced TTI by 40%..."' },
+  { id:'b2', cat:'behavioral', q:'Tell me about a technical disagreement with your team?', a:'STAR: Situation (architectural decision). Task (your role). Action (presented data/prototypes, listened to concerns, found middle ground). Result (outcome + what you learned about influence vs authority).' },
+  { id:'b3', cat:'behavioral', q:'Most complex technical problem you\'ve solved?', a:'Pick something with: scale challenge OR architectural ambiguity OR cross-team impact. Explain problem clearly, your investigation process, the trade-offs you evaluated, decision made, and measurable outcome.' },
+  { id:'b4', cat:'behavioral', q:'How do you handle tight deadlines with quality trade-offs?', a:'Communicate early. Scope negotiation (must-have vs nice-to-have). Technical debt log with payback plan. Ship with feature flags to limit blast radius. Post-ship cleanup sprint commitment.' },
+  { id:'b5', cat:'behavioral', q:'How have you mentored junior engineers?', a:'Pair programming on critical paths. Code review as a teaching tool (explain why, not just what). Give ownership of small features. Regular 1:1s to unblock. Celebrate their wins. Connect them to the right people.' },
+  { id:'b6', cat:'behavioral', q:'A time you failed or made a technical mistake?', a:'Own it clearly. No deflection. Show: how you detected it, immediate mitigation, root cause analysis, systemic fix to prevent recurrence. Demonstrate learning and maturity.' },
+  { id:'b7', cat:'behavioral', q:'How do you stay current with frontend/tech trends?', a:'Follow: TC39, RFC processes, browser release notes. Read: Smashing Mag, web.dev, JS Weekly. Build side projects with new tech. Attend/watch conf talks (React Summit, ViteConf). Contribute to OSS.' },
+  { id:'b8', cat:'behavioral', q:'Why do you want to join [company]?', a:'Research: their eng blog, tech stack, scale, culture. Connect to your experience. Show genuine interest in their specific challenges. Avoid generic "great culture" answers. Mention specific team/product.' },
+
+  // ---- LEETCODE TIPS ----
+  { id:'l1', cat:'leetcode', q:'Approach order for any problem?', a:'1. Clarify constraints & edge cases. 2. Brute force. 3. Optimize (time/space trade-off). 4. Code cleanly. 5. Test with edge cases (empty, single, duplicates, negatives). Always state complexity.' },
+  { id:'l2', cat:'leetcode', q:'HashMap patterns to memorize?', a:'Two-sum: value→index. Frequency count: value→count. Prefix sum: sum→index. Anagram: sorted string → list. Group by key. Almost every O(n²) brute force can become O(n) with a hashmap.' },
+  { id:'l3', cat:'leetcode', q:'Tree problem patterns?', a:'<strong>Path sum</strong>: DFS passing current sum. <strong>LCA</strong>: check left+right subtrees. <strong>Serialize</strong>: preorder with null markers. <strong>Validate BST</strong>: pass min/max bounds. <strong>Diameter</strong>: max(left_height + right_height) at each node.' },
+  { id:'l4', cat:'leetcode', q:'String patterns?', a:'Palindrome: two pointers from center expand. Anagram: sorted key or char frequency. Longest without repeating: sliding window + set. Minimum window substring: sliding window + char counts.' },
+  { id:'l5', cat:'leetcode', q:'Key DP patterns?', a:'<strong>0/1 Knapsack</strong>: dp[i][w]. <strong>LCS/LIS</strong>: dp[i][j] / dp[i]. <strong>Edit distance</strong>: 2D DP. <strong>Coin change</strong>: dp[amount]. <strong>House robber</strong>: dp[i] = max(dp[i-1], dp[i-2]+nums[i]). <strong>Matrix paths</strong>: dp[r][c].' },
+  { id:'l6', cat:'leetcode', q:'Stack-based patterns?', a:'<strong>Monotonic stack</strong>: next greater/smaller element. <strong>Valid parentheses</strong>: match opener. <strong>Largest rectangle histogram</strong>: maintain increasing stack. <strong>Decode string</strong>: push on [, pop on ]. Daily temperatures.' },
+  { id:'l7', cat:'leetcode', q:'Graph problem checklist?', a:'Directed or undirected? Weighted? Cyclic? Build adjacency list. Choose BFS (shortest path) or DFS (connectivity). Track visited set. Topological sort for DAGs (Kahn\'s BFS or DFS with finish time).' },
+  { id:'l8', cat:'leetcode', q:'Bit manipulation tricks?', a:'x & (x-1): remove lowest set bit. x & (-x): isolate lowest set bit. x ^ x = 0, x ^ 0 = x. Check bit k: x>>k & 1. Set bit k: x | (1<<k). n & (n-1) == 0: power of 2.' },
+  { id:'l9', cat:'leetcode', q:'Common interview edge cases to always check?', a:'Empty input / null. Single element. All same elements. Sorted ascending / descending. Integer overflow (use long). Negative numbers. Circular structure. Very large n (scalability).' },
+  { id:'l10', cat:'leetcode', q:'How to handle "design" questions in interviews?', a:'Clarify: read vs write heavy? Consistency needs? Scale? Start with data structures. Define APIs. Walk through complexity. Discuss trade-offs explicitly. Mention what you\'d add with more time.' },
+];
+
+// ============================================================
+// STATE
+// ============================================================
+let cards = [];
+let studyState = {}; // cardId → { known: bool, seenCount: int }
+let currentStudyCat = 'all';
+let currentCardsCat = 'all';
+let studyDeck = [];
+let studyIndex = 0;
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem('swe_cards');
+    const customCards = saved ? JSON.parse(saved) : [];
+    cards = [...SEED_CARDS, ...customCards];
+    const ss = localStorage.getItem('swe_study');
+    studyState = ss ? JSON.parse(ss) : {};
+  } catch(e) { cards = [...SEED_CARDS]; studyState = {}; }
+}
+function saveCustomCards() {
+  const custom = cards.filter(c => !SEED_CARDS.find(s => s.id === c.id));
+  localStorage.setItem('swe_cards', JSON.stringify(custom));
+}
+function saveStudyState() {
+  localStorage.setItem('swe_study', JSON.stringify(studyState));
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+const PAGE_META = {
+  study:  { title:'📚 Study', sub:'Tap card to flip • Mark known or skip' },
+  cards:  { title:'🗂️ All Cards', sub:'Browse your flashcards' },
+  add:    { title:'➕ Add Cards', sub:'Manual, photo, or paste text' },
+  stats:  { title:'📊 Progress', sub:'Your study stats' },
+};
+function goTo(page, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const m = PAGE_META[page];
+  document.getElementById('page-title').textContent = m.title;
+  document.getElementById('page-sub').textContent = m.sub;
+  if (page === 'study') renderStudy();
+  if (page === 'cards') renderCards();
+  if (page === 'stats') renderStats();
+}
+
+// ============================================================
+// CATEGORY CHIPS
+// ============================================================
+function buildCatChips(containerId, activeCat, onChange) {
+  const el = document.getElementById(containerId);
+  const allCats = ['all', ...Object.keys(CATEGORIES)];
+  el.innerHTML = allCats.map(c => `
+    <div class="cat-chip ${c===activeCat?'active':''}" onclick="(${onChange.toString()})('${c}')">
+      ${c==='all' ? 'All' : CATEGORIES[c].label}
+    </div>`).join('');
+}
+
+// ============================================================
+// STUDY PAGE
+// ============================================================
+function renderStudy() {
+  buildCatChips('study-cats', currentStudyCat, (c) => { currentStudyCat = c; buildStudyDeck(); renderStudy(); });
+  buildStudyDeck();
+  renderStudyCard();
+}
+function buildStudyDeck() {
+  const pool = currentStudyCat === 'all' ? cards : cards.filter(c => c.cat === currentStudyCat);
+  // prioritise unseen / unknown
+  studyDeck = [...pool].sort((a,b) => {
+    const sa = studyState[a.id];
+    const sb = studyState[b.id];
+    if (!sa && sb) return -1;
+    if (sa && !sb) return 1;
+    if (sa?.known && !sb?.known) return 1;
+    if (!sa?.known && sb?.known) return -1;
+    return 0;
+  });
+  if (studyIndex >= studyDeck.length) studyIndex = 0;
+}
+function renderStudyCard() {
+  const area = document.getElementById('study-area');
+  if (!studyDeck.length) {
+    area.innerHTML = `<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg><h3>No cards here</h3><p>Add some cards first!</p></div>`;
+    return;
+  }
+  const card = studyDeck[studyIndex];
+  const total = studyDeck.length;
+  const known = studyDeck.filter(c => studyState[c.id]?.known).length;
+  const pct = total ? Math.round(known/total*100) : 0;
+
+  area.innerHTML = `
+    <div class="progress-label"><span>${studyIndex+1} of ${total}</span><span>${pct}% mastered</span></div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <div class="card-scene" id="study-card" onclick="flipCard()">
+      <div class="card-inner">
+        <div class="card-face card-front">
+          <div class="card-tag">${CATEGORIES[card.cat].label}</div>
+          ${card.img ? `<img class="card-img" src="${card.img}" alt="card image">` : ''}
+          <div class="card-question">${card.q}</div>
+          <div class="card-hint">Tap to reveal answer</div>
+        </div>
+        <div class="card-face card-back">
+          <div class="card-tag">Answer</div>
+          <div class="card-answer">${card.a}</div>
+        </div>
+      </div>
+    </div>
+    <div class="action-row">
+      <button class="action-btn btn-skip" onclick="markCard(false)">✗ Again</button>
+      <button class="action-btn btn-know" onclick="markCard(true)">✓ Got it</button>
+    </div>
+    <div class="swipe-hint">Mark to move to next card</div>
+  `;
+  // touch swipe
+  setupSwipe(document.getElementById('study-card'));
+}
+function flipCard() {
+  document.getElementById('study-card')?.classList.toggle('flipped');
+}
+function markCard(known) {
+  if (!studyDeck.length) return;
+  const card = studyDeck[studyIndex];
+  studyState[card.id] = { known, seenCount: (studyState[card.id]?.seenCount||0)+1, lastSeen: Date.now() };
+  saveStudyState();
+  studyIndex = (studyIndex + 1) % studyDeck.length;
+  renderStudyCard();
+  if (known) toast('✓ Marked as known!');
+}
+function setupSwipe(el) {
+  if (!el) return;
+  let startX = 0, startY = 0;
+  el.addEventListener('touchstart', e => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; }, { passive: true });
+  el.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+      if (dx > 0) markCard(true);
+      else markCard(false);
+    }
+  }, { passive: true });
+}
+
+// ============================================================
+// CARDS LIST PAGE
+// ============================================================
+function renderCards() {
+  buildCatChips('cards-cats', currentCardsCat, (c) => { currentCardsCat = c; renderCards(); });
+  const filtered = currentCardsCat === 'all' ? cards : cards.filter(c => c.cat === currentCardsCat);
+  const list = document.getElementById('cards-list');
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state"><h3>No cards</h3><p>Add some from the Add tab.</p></div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(c => `
+    <div class="card-item" onclick="openModal('${c.id}')">
+      <div class="card-item-body">
+        <div class="card-item-q">${c.q}</div>
+        <div class="card-item-a">${c.a.replace(/<[^>]+>/g,'')}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
+        <span class="card-item-tag">${CATEGORIES[c.cat].label}</span>
+        ${studyState[c.id]?.known ? '<span style="font-size:10px;color:#4ade80">✓ Known</span>' : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// ADD CARD
+// ============================================================
+function addCardManual() {
+  const q = document.getElementById('add-q').value.trim();
+  const a = document.getElementById('add-a').value.trim();
+  const cat = document.getElementById('add-cat').value;
+  if (!q || !a) { toast('⚠️ Fill in question and answer'); return; }
+  const card = { id: 'u_'+Date.now(), cat, q, a };
+  cards.push(card);
+  saveCustomCards();
+  document.getElementById('add-q').value = '';
+  document.getElementById('add-a').value = '';
+  toast('✅ Card added!');
+}
+
+// ============================================================
+// IMAGE TO CARD (OCR)
+// ============================================================
+async function handleImage(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  const preview = document.getElementById('img-preview');
+  preview.src = url;
+  document.getElementById('img-preview-wrap').style.display = 'block';
+  document.getElementById('ocr-result').style.display = 'none';
+  document.getElementById('ocr-status').innerHTML = '<div class="loading-row"><div class="spinner"></div><span>Reading image with OCR...</span></div>';
+
+  try {
+    const { data: { text } } = await Tesseract.recognize(file, 'eng', { logger: m => {
+      if (m.status === 'recognizing text') {
+        document.getElementById('ocr-status').innerHTML = `<div class="loading-row"><div class="spinner"></div><span>OCR: ${Math.round(m.progress*100)}%</span></div>`;
+      }
+    }});
+    document.getElementById('ocr-status').innerHTML = '<span style="color:var(--success);font-size:12px;">✓ Text extracted!</span>';
+    document.getElementById('ocr-text').value = text.trim();
+    document.getElementById('ocr-result').style.display = 'block';
+  } catch(err) {
+    document.getElementById('ocr-status').innerHTML = '<span style="color:var(--danger);font-size:12px;">OCR failed. Try a clearer image.</span>';
+  }
+}
+function generateFromOCR() {
+  const text = document.getElementById('ocr-text').value.trim();
+  const cat = document.getElementById('ocr-cat').value;
+  if (!text) { toast('⚠️ No text to process'); return; }
+  const imgSrc = document.getElementById('img-preview').src;
+  const count = generateCardsFromText(text, cat, imgSrc);
+  document.getElementById('ocr-result').style.display = 'none';
+  document.getElementById('img-preview-wrap').style.display = 'none';
+  document.getElementById('ocr-status').innerHTML = '';
+  document.getElementById('img-input').value = '';
+  toast(`✅ Created ${count} card(s) from image!`);
+}
+function generateFromText() {
+  const text = document.getElementById('paste-text').value.trim();
+  const cat = document.getElementById('paste-cat').value;
+  if (!text) { toast('⚠️ Paste some text first'); return; }
+  const count = generateCardsFromText(text, cat, null);
+  document.getElementById('paste-text').value = '';
+  toast(`✅ Created ${count} card(s)!`);
+}
+
+function generateCardsFromText(text, cat, imgSrc) {
+  // Parse text into Q&A pairs
+  const generated = [];
+  // Strategy 1: bullet/numbered lines → group into Q&A pairs
+  const lines = text.split('\n').map(l => l.replace(/^[\s•\-\*\d\.]+/, '').trim()).filter(l => l.length > 5);
+
+  if (lines.length === 0) return 0;
+
+  // If looks like Q&A format (has ? or : separators)
+  const qaLines = lines.filter(l => l.includes('?') || l.includes(':'));
+
+  if (qaLines.length > 0) {
+    // Pair them up or use Q: / A: markers
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (line.toLowerCase().startsWith('q:') || line.endsWith('?')) {
+        const q = line.replace(/^q:/i, '').trim();
+        const next = lines[i+1];
+        const a = next ? next.replace(/^a:/i, '').trim() : 'See notes';
+        generated.push({ id:'u_'+Date.now()+'_'+i, cat, q, a: a || 'Review this concept' });
+        if (next && !next.endsWith('?')) i++;
+      }
+    }
+  }
+
+  // Strategy 2: chunked lines as individual concept cards
+  if (generated.length === 0) {
+    // Group every 2-3 lines as a card
+    for (let i = 0; i < lines.length; i += 2) {
+      const q = lines[i];
+      const a = lines.slice(i+1, i+3).join(' • ') || 'Review this concept';
+      generated.push({ id:'u_'+Date.now()+'_'+i, cat, q: q.length > 120 ? q.substring(0,120)+'...' : q, a });
+    }
+  }
+
+  // Attach image to first card if provided
+  if (imgSrc && generated.length > 0) generated[0].img = imgSrc;
+
+  generated.forEach(c => cards.push(c));
+  saveCustomCards();
+  return generated.length;
+}
+
+// ============================================================
+// STATS PAGE
+// ============================================================
+function renderStats() {
+  const total = cards.length;
+  const known = Object.values(studyState).filter(s => s.known).length;
+  const streak = calcStreak();
+  const due = total - known;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-known').textContent = known;
+  document.getElementById('stat-streak').textContent = streak;
+  document.getElementById('stat-due').textContent = due;
+
+  const catEl = document.getElementById('cat-progress-list');
+  catEl.innerHTML = Object.entries(CATEGORIES).map(([key, cat]) => {
+    const catCards = cards.filter(c => c.cat === key);
+    const catKnown = catCards.filter(c => studyState[c.id]?.known).length;
+    const pct = catCards.length ? Math.round(catKnown/catCards.length*100) : 0;
+    return `
+      <div class="cat-progress">
+        <div class="cat-progress-label"><span>${cat.label}</span><span>${catKnown}/${catCards.length}</span></div>
+        <div class="cat-progress-bar"><div class="cat-progress-fill" style="width:${pct}%;background:${cat.color}"></div></div>
+      </div>
+    `;
+  }).join('');
+}
+function calcStreak() {
+  const days = new Set(Object.values(studyState).map(s => s.lastSeen ? new Date(s.lastSeen).toDateString() : null).filter(Boolean));
+  let streak = 0, d = new Date();
+  while (days.has(d.toDateString())) { streak++; d.setDate(d.getDate()-1); }
+  return streak;
+}
+function resetProgress() {
+  if (confirm('Reset all study progress?')) { studyState = {}; saveStudyState(); renderStats(); toast('🔄 Progress reset'); }
+}
+function clearAll() {
+  if (confirm('Delete all custom cards? (Seed cards stay)')) {
+    cards = [...SEED_CARDS]; saveCustomCards(); toast('🗑️ Custom cards cleared');
+  }
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+function openModal(id) {
+  const card = cards.find(c => c.id === id);
+  if (!card) return;
+  document.getElementById('modal-title').textContent = CATEGORIES[card.cat].label;
+  document.getElementById('modal-body').innerHTML = `
+    ${card.img ? `<img src="${card.img}" style="width:100%;border-radius:10px;margin-bottom:12px;max-height:180px;object-fit:contain;">` : ''}
+    <p style="font-size:14px;font-weight:600;margin-bottom:12px;line-height:1.5">${card.q}</p>
+    <p style="font-size:13px;color:var(--text2);line-height:1.7">${card.a}</p>
+    ${!SEED_CARDS.find(s => s.id === id) ? `<button onclick="deleteCard('${id}')" style="margin-top:16px;width:100%;padding:12px;background:rgba(248,113,113,.15);border:1px solid var(--danger);border-radius:12px;color:var(--danger);font-size:14px;font-weight:600;cursor:pointer;">Delete Card</button>` : ''}
+  `;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function deleteCard(id) {
+  cards = cards.filter(c => c.id !== id);
+  saveCustomCards();
+  closeModal();
+  renderCards();
+  toast('🗑️ Card deleted');
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+loadState();
+renderStudy();
+</script>
+</body>
+</html>
