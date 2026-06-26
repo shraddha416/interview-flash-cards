@@ -43,11 +43,18 @@
   .page { display: none; }
   .page.active { display: block; }
 
-  /* CATEGORY CHIPS */
-  .cat-scroll { display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 16px; padding-bottom: 4px; scrollbar-width: none; }
-  .cat-scroll::-webkit-scrollbar { display: none; }
-  .cat-chip { white-space: nowrap; padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--surface); font-size: 13px; font-weight: 500; cursor: pointer; transition: all .2s; color: var(--text2); }
-  .cat-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  /* BROAD TOPIC BUTTONS */
+  .broad-scroll { display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 10px; padding-bottom: 2px; scrollbar-width: none; }
+  .broad-scroll::-webkit-scrollbar { display: none; }
+  .broad-btn { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 14px; border-radius: 14px; border: 1.5px solid var(--border); background: var(--surface); font-size: 11px; font-weight: 600; cursor: pointer; transition: all .2s; color: var(--text2); min-width: 72px; }
+  .broad-btn .broad-icon { font-size: 20px; }
+  .broad-btn.active { border-width: 2px; color: #fff; }
+
+  /* SUB TOPIC CHIPS */
+  .sub-scroll { display: flex; gap: 7px; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 14px; padding-bottom: 4px; scrollbar-width: none; min-height: 30px; }
+  .sub-scroll::-webkit-scrollbar { display: none; }
+  .sub-chip { white-space: nowrap; padding: 5px 12px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--surface2); font-size: 12px; font-weight: 500; cursor: pointer; transition: all .2s; color: var(--text2); }
+  .sub-chip.active { color: #fff; }
 
   /* STUDY CARD */
   .study-area { display: flex; flex-direction: column; align-items: center; gap: 16px; }
@@ -162,13 +169,15 @@
 
     <!-- STUDY PAGE -->
     <div class="page active" id="page-study">
-      <div class="cat-scroll" id="study-cats"></div>
+      <div class="broad-scroll" id="study-broad"></div>
+      <div class="sub-scroll" id="study-subs"></div>
       <div class="study-area" id="study-area"></div>
     </div>
 
     <!-- CARDS PAGE -->
     <div class="page" id="page-cards">
-      <div class="cat-scroll" id="cards-cats"></div>
+      <div class="broad-scroll" id="cards-broad"></div>
+      <div class="sub-scroll" id="cards-subs"></div>
       <div class="cards-list" id="cards-list"></div>
     </div>
 
@@ -184,6 +193,14 @@
             <option value="dsalgo">DS / Algo</option>
             <option value="behavioral">Behavioral</option>
             <option value="leetcode">LeetCode Tips</option>
+            <option value="threads">Browser Threads</option>
+            <option value="cookies">Cookies</option>
+            <option value="streams">JS Streams</option>
+            <option value="a11y">Accessibility</option>
+            <option value="seo">SEO</option>
+            <option value="security">Security</option>
+            <option value="microfrontend">Micro-frontend</option>
+            <option value="performance">Performance</option>
           </select>
         </div>
         <div class="form-group">
@@ -237,6 +254,14 @@
             <option value="dsalgo">DS / Algo</option>
             <option value="behavioral">Behavioral</option>
             <option value="leetcode">LeetCode Tips</option>
+            <option value="threads">Browser Threads</option>
+            <option value="cookies">Cookies</option>
+            <option value="streams">JS Streams</option>
+            <option value="a11y">Accessibility</option>
+            <option value="seo">SEO</option>
+            <option value="security">Security</option>
+            <option value="microfrontend">Micro-frontend</option>
+            <option value="performance">Performance</option>
           </select>
         </div>
         <div class="form-group">
@@ -293,11 +318,29 @@
 // DATA
 // ============================================================
 const CATEGORIES = {
-  frontend: { label: 'Frontend SD', color: '#7c6af7' },
-  dsalgo:   { label: 'DS / Algo',   color: '#5eead4' },
-  behavioral: { label: 'Behavioral', color: '#fbbf24' },
-  leetcode: { label: 'LeetCode',    color: '#f87171' },
+  frontend:     { label: 'Frontend SD',     color: '#7c6af7' },
+  threads:      { label: 'Browser Threads', color: '#38bdf8' },
+  cookies:      { label: 'Cookies',         color: '#fb923c' },
+  streams:      { label: 'JS Streams',      color: '#a3e635' },
+  a11y:         { label: 'Accessibility',   color: '#e879f9' },
+  seo:          { label: 'SEO',             color: '#34d399' },
+  security:     { label: 'Security',        color: '#f43f5e' },
+  performance:  { label: 'Performance',     color: '#fcd34d' },
+  reactnative:  { label: 'React Native',    color: '#61dafb' },
+  microfrontend:{ label: 'Micro-frontend',  color: '#818cf8' },
+  dsalgo:       { label: 'DS / Algo',       color: '#5eead4' },
+  leetcode:     { label: 'LeetCode',        color: '#f87171' },
+  behavioral:   { label: 'Behavioural',     color: '#fbbf24' },
 };
+
+const BROAD_TOPICS = [
+  { key: 'all',           label: 'All',           icon: '🌐', color: '#9999b3', subs: [] },
+  { key: 'frontend_web',  label: 'Frontend Web',  icon: '💻', color: '#7c6af7', subs: ['frontend','threads','cookies','streams','a11y','seo','security','performance'] },
+  { key: 'react_native',  label: 'React Native',  icon: '📱', color: '#61dafb', subs: ['reactnative'] },
+  { key: 'system_design', label: 'System Design', icon: '🏗️', color: '#5eead4', subs: ['microfrontend'] },
+  { key: 'dsalgo',        label: 'DS & Algo',     icon: '🧮', color: '#fbbf24', subs: ['dsalgo','leetcode'] },
+  { key: 'behavioural',   label: 'Behavioural',   icon: '🤝', color: '#f87171', subs: ['behavioral'] },
+];
 
 const SEED_CARDS = [
   // ---- FRONTEND SYSTEM DESIGN ----
@@ -352,17 +395,118 @@ const SEED_CARDS = [
   { id:'l8', cat:'leetcode', q:'Bit manipulation tricks?', a:'x & (x-1): remove lowest set bit. x & (-x): isolate lowest set bit. x ^ x = 0, x ^ 0 = x. Check bit k: x>>k & 1. Set bit k: x | (1<<k). n & (n-1) == 0: power of 2.' },
   { id:'l9', cat:'leetcode', q:'Common interview edge cases to always check?', a:'Empty input / null. Single element. All same elements. Sorted ascending / descending. Integer overflow (use long). Negative numbers. Circular structure. Very large n (scalability).' },
   { id:'l10', cat:'leetcode', q:'How to handle "design" questions in interviews?', a:'Clarify: read vs write heavy? Consistency needs? Scale? Start with data structures. Define APIs. Walk through complexity. Discuss trade-offs explicitly. Mention what you\'d add with more time.' },
+
+  // ---- BROWSER THREADS ----
+  { id:'t1', cat:'threads', q:'What thread types does the browser expose to JavaScript developers?', a:'<strong>Main thread</strong>: DOM, CSSOM, JS execution, rendering. <strong>Dedicated Web Worker</strong>: 1-to-1 with creator. <strong>Shared Worker</strong>: shared across same-origin tabs. <strong>Service Worker</strong>: background proxy, no DOM. <strong>Worklets</strong>: AudioWorklet, PaintWorklet, AnimationWorklet, LayoutWorklet — each tied to a specific browser pipeline stage.' },
+  { id:'t2', cat:'threads', q:'Web Worker vs Service Worker vs Worklet — what are the key differences?', a:'<strong>Web Worker</strong>: general offloading, lives as long as creator tab. <strong>Service Worker</strong>: intercepts network, persists beyond tab, controls cache/push. <strong>Worklet</strong>: lightweight, plugs into a specific browser rendering stage (audio graph, paint, layout). Worklets can\'t use postMessage freely and have restricted APIs by design.' },
+  { id:'t3', cat:'threads', q:'What APIs are NOT available inside a Web Worker?', a:'No <strong>DOM / document / window</strong>. No localStorage (use IndexedDB). No alert/confirm. No synchronous XHR in some contexts. CAN use: fetch, WebSockets, IndexedDB, Cache API, importScripts, postMessage, crypto, performance, setTimeout. Workers run in a WorkerGlobalScope.' },
+  { id:'t4', cat:'threads', q:'How do Web Workers communicate with the main thread? What are the transfer options?', a:'<strong>postMessage(data)</strong>: structured clone (deep copy, expensive for large data). <strong>Transferable objects</strong> (ArrayBuffer, MessagePort, ImageBitmap): zero-copy transfer — original becomes detached. <strong>SharedArrayBuffer</strong>: true shared memory + Atomics for synchronisation. Requires COOP/COEP headers.' },
+  { id:'t5', cat:'threads', q:'What is a Shared Worker and when would you actually use one?', a:'One instance shared across all same-origin tabs/iframes. Use for: shared WebSocket connection (one socket, fan out to tabs), cross-tab state sync without BroadcastChannel, shared cache. Connect via <strong>port</strong> object. Tricky to debug — only one DevTools panel. Dies when last port disconnects.' },
+  { id:'t6', cat:'threads', q:'Why was AudioWorklet introduced? What problem did ScriptProcessorNode have?', a:'<strong>ScriptProcessorNode</strong> ran audio callbacks on the main thread — any jank caused audio glitches. <strong>AudioWorklet</strong> runs on the dedicated audio rendering thread (real-time priority). Uses a custom AudioWorkletProcessor class. Communication with main thread via postMessage or AudioWorkletNode params.' },
+  { id:'t7', cat:'threads', q:'What is a Paint Worklet (CSS Houdini)? How does it work?', a:'CSS.paintWorklet.addModule(\'painter.js\'). Define a class with a <strong>paint(ctx, geom, props)</strong> method. Register with registerPaint(). Use in CSS as <strong>background: paint(myPainter)</strong>. Runs on compositor thread. Enables custom CSS paint effects without touching the DOM. Part of Houdini APIs.' },
+  { id:'t8', cat:'threads', q:'What headers are required to use SharedArrayBuffer? Why?', a:'<strong>Cross-Origin-Opener-Policy: same-origin</strong> and <strong>Cross-Origin-Embedder-Policy: require-corp</strong>. Required since Spectre vulnerability — these isolate the browsing context, preventing cross-origin reads via timing attacks. Check with window.crossOriginIsolated === true.' },
+
+  // ---- COOKIE STATES ----
+  { id:'c1', cat:'cookies', q:'List every cookie attribute and what each controls?', a:'<strong>Name=Value</strong>: the data. <strong>Domain</strong>: which hosts receive it. <strong>Path</strong>: URL scope. <strong>Expires</strong>: absolute date (persistent). <strong>Max-Age</strong>: seconds from now (overrides Expires). <strong>Secure</strong>: HTTPS only. <strong>HttpOnly</strong>: no JS access. <strong>SameSite</strong>: cross-site sending rules. <strong>Partitioned</strong> (CHIPS): separate jar per top-level site. <strong>Priority</strong>: Low/Medium/High (Chrome).' },
+  { id:'c2', cat:'cookies', q:'SameSite=Strict vs Lax vs None — exact sending behaviour?', a:'<strong>Strict</strong>: never sent on cross-site requests (not even top-level nav link clicks). <strong>Lax</strong>: sent on top-level GET navigations only (clicking a link, not iframes/fetch/img). Default since Chrome 80. <strong>None</strong>: always sent cross-site — <em>must</em> also set Secure. None without Secure is rejected.' },
+  { id:'c3', cat:'cookies', q:'Session cookie vs Persistent cookie — how does the browser decide?', a:'<strong>Session cookie</strong>: no Expires or Max-Age → deleted when browser session ends (tab/window close). Note: session restore can revive them. <strong>Persistent cookie</strong>: has Expires (UTC date) or Max-Age (seconds). Max-Age=0 deletes the cookie immediately. Max-Age takes precedence over Expires if both present.' },
+  { id:'c4', cat:'cookies', q:'What does HttpOnly prevent and what does Secure prevent? What can bypass them?', a:'<strong>HttpOnly</strong>: JS cannot read via document.cookie — protects against XSS token theft. <strong>Secure</strong>: only sent over HTTPS — prevents network sniffing. Neither prevents CSRF. HttpOnly cookies CAN still be sent by XSS-injected fetch requests — only token theft is blocked, not usage.' },
+  { id:'c5', cat:'cookies', q:'What makes a cookie "third-party"? How is this changing?', a:'Third-party = cookie set by a domain different from the page\'s top-level domain (e.g. ad tracker on news site). Chrome phase-out of 3P cookies: replaced by Privacy Sandbox APIs (Topics, Protected Audience). <strong>CHIPS (Partitioned)</strong>: third-party cookies partitioned per top-level site — embed on siteA gets different jar than on siteB.' },
+  { id:'c6', cat:'cookies', q:'What is the __Host- and __Secure- cookie prefix? What do they enforce?', a:'<strong>__Secure-</strong>: must have Secure flag, must be set over HTTPS. <strong>__Host-</strong>: must have Secure, must NOT have Domain (host-only), Path must be "/". Prevents cookie shadowing attacks where a subdomain sets a cookie that overrides the parent domain.' },
+  { id:'c7', cat:'cookies', q:'Cookie size limits and count limits — what are they?', a:'Max <strong>4KB</strong> per cookie (name + value + attributes). Browsers typically allow <strong>~180 cookies per domain</strong> and ~3000 total. Exceeding limits: browsers may silently drop oldest cookies (LRU eviction per domain). Use sessionStorage/IndexedDB for larger data.' },
+  { id:'c8', cat:'cookies', q:'How does Path scoping work for cookies? What is a common gotcha?', a:'Cookie with Path=/admin is only sent for /admin/* requests. Path=/ sends on all paths. Gotcha: Path is NOT a security boundary — JS on the same origin can always read cookies via document.cookie regardless of Path. Path is purely a sending filter, not an access control.' },
+
+  // ---- JAVASCRIPT STREAMS ----
+  { id:'s1', cat:'streams', q:'What are the three stream types in the WHATWG Streams API?', a:'<strong>ReadableStream</strong>: source of data you pull from (fetch response body). <strong>WritableStream</strong>: sink you write data to (file, WebSocket). <strong>TransformStream</strong>: readable + writable pair — data flows in one end, transformed, comes out the other. Has a writable and readable property.' },
+  { id:'s2', cat:'streams', q:'What is backpressure in streams and how does it work?', a:'Consumer signals to producer to slow down when it can\'t keep up. In Streams API: WritableStream\'s writer.write() returns a Promise that resolves when the stream is ready for more. ReadableStream controller has a desiredSize — negative means buffer is full. Prevents memory blowout when producer is faster than consumer.' },
+  { id:'s3', cat:'streams', q:'pipeTo() vs pipeThrough() — what\'s the difference?', a:'<strong>pipeTo(writableStream)</strong>: terminal — connects readable to a writable sink. <strong>pipeThrough(transformStream)</strong>: intermediate — passes data through a transform and returns a new ReadableStream for further chaining. Chain: readable.pipeThrough(decompress).pipeThrough(decode).pipeTo(sink).' },
+  { id:'s4', cat:'streams', q:'What is a BYOB reader and when would you use one?', a:'<strong>Bring Your Own Buffer</strong> — ReadableStreamBYOBReader. You provide a pre-allocated ArrayBuffer; the stream fills it directly. Avoids extra allocations vs default reader which creates new chunks. Use for high-throughput binary data (video decode, file parsing). Only works with byte streams (type:\'bytes\' in constructor).' },
+  { id:'s5', cat:'streams', q:'What does "locking" a stream mean? What happens if you try to get two readers?', a:'Getting a reader (stream.getReader()) <strong>locks</strong> the stream to that reader — no other reader can be obtained. stream.locked === true. Must call reader.releaseLock() before getting another reader. Same for WritableStream writers. Prevents concurrent read/write races. Piping also locks both sides.' },
+  { id:'s6', cat:'streams', q:'How does fetch() use the Streams API? How do you stream a response?', a:'fetch() returns a Promise&lt;Response&gt; where response.body is a <strong>ReadableStream</strong>. To stream: const reader = res.body.getReader(); while(true) { const {done, value} = await reader.read(); if(done) break; process(value); }. Enables processing large responses without buffering entire body in memory.' },
+  { id:'s7', cat:'streams', q:'How do you create a custom ReadableStream with a pull-based source?', a:'new ReadableStream({ start(controller){}, pull(controller){ controller.enqueue(chunk); if(done) controller.close(); }, cancel(reason){} }). <strong>pull</strong> is called when consumer wants more data (backpressure aware). <strong>start</strong> for setup. <strong>cancel</strong> for cleanup when consumer cancels.' },
+  { id:'s8x', cat:'streams', q:'TransformStream — how do you implement a custom one? Real use cases?', a:'new TransformStream({ transform(chunk, controller){ controller.enqueue(modified(chunk)); }, flush(controller){ /* final chunk */ } }). Real uses: TextDecoderStream (bytes→string), CompressionStream/DecompressionStream (gzip), encryption, JSON parsing of streamed NDJSON, token-by-token LLM streaming.' },
+
+  // ---- ACCESSIBILITY ----
+  { id:'a1', cat:'a11y', q:'What are the 4 POUR principles of WCAG?', a:'<strong>P</strong>erceivable: info must be presentable to users in ways they can perceive (alt text, captions). <strong>O</strong>perable: UI components must be operable (keyboard nav, no seizure-triggering content). <strong>U</strong>nderstandable: info and operation must be understandable. <strong>R</strong>obust: content must be interpreted by assistive tech (valid HTML, ARIA).' },
+  { id:'a2', cat:'a11y', q:'WCAG 2.1 — A vs AA vs AAA. What level do companies typically target?', a:'<strong>A</strong>: minimum (e.g. non-text alt text, keyboard access). <strong>AA</strong>: standard legal/industry target — includes 4.5:1 contrast ratio, captions for live video, no keyboard trap. <strong>AAA</strong>: enhanced, usually not required across the board. Most companies and legal requirements (ADA, EN 301 549) target <strong>AA</strong>.' },
+  { id:'a3', cat:'a11y', q:'aria-label vs aria-labelledby vs aria-describedby — when to use each?', a:'<strong>aria-label</strong>: inline string label when no visible text exists (icon buttons). <strong>aria-labelledby</strong>: points to ID of an existing visible element to use as label — preferred when label is on screen. <strong>aria-describedby</strong>: supplementary description (hint text, error messages). labelledby overrides aria-label.' },
+  { id:'a4', cat:'a11y', q:'ARIA roles — first rule of ARIA?', a:'<strong>"Don\'t use ARIA if native HTML can do it."</strong> &lt;button&gt; is better than &lt;div role="button"&gt; because native elements have built-in keyboard support, focus, and semantics. ARIA only adds semantics, not behaviour. If you use role="button" on a div, you must also add tabindex="0" and keydown handlers manually.' },
+  { id:'a5', cat:'a11y', q:'How do you manage focus in a SPA or modal?', a:'On modal open: move focus to first focusable element inside modal. <strong>Trap focus</strong> inside modal (intercept Tab/Shift+Tab). On modal close: return focus to the trigger element. For route changes: move focus to page heading or announce route change with aria-live. Use a focus management utility or inert attribute for non-modal content.' },
+  { id:'a6', cat:'a11y', q:'What are aria-live regions? When do you use them?', a:'Announce dynamic content changes to screen readers without moving focus. <strong>aria-live="polite"</strong>: reads when user is idle (notifications, form success). <strong>aria-live="assertive"</strong>: interrupts immediately (errors, alerts). role="status" = polite, role="alert" = assertive. Don\'t overuse assertive — it\'s disruptive. Add region to DOM early, then update content.' },
+  { id:'a7', cat:'a11y', q:'Color contrast requirements — WCAG AA vs AAA?', a:'<strong>AA Normal text</strong>: 4.5:1. <strong>AA Large text</strong> (18pt/14pt bold): 3:1. <strong>AAA Normal</strong>: 7:1. <strong>AAA Large</strong>: 4.5:1. UI components and graphical objects: 3:1 (AA). Pure decorative elements exempt. Check with: browser DevTools, axe, Colour Contrast Analyser. Don\'t rely on colour alone to convey info.' },
+  { id:'a8', cat:'a11y', q:'What is a skip link and why is it important?', a:'A visually hidden link at the top of the page: &lt;a href="#main" class="skip-link"&gt;Skip to content&lt;/a&gt;. Visible on focus. Lets keyboard/screen reader users jump past repeated nav. Required for WCAG 2.4.1 (Level A). Show on :focus with CSS. Essential for users who navigate by Tab key.' },
+  { id:'a9', cat:'a11y', q:'When should alt text be empty (alt="")?', a:'When the image is <strong>purely decorative</strong> — adds no information. Screen readers skip it entirely. Never omit alt attribute entirely (that\'s worse — reader may announce filename). Descriptive alt: describe what the image conveys, not what it looks like. For charts: describe the insight ("Bar chart showing 40% growth in Q4").' },
+  { id:'a10', cat:'a11y', q:'How do you make a custom dropdown/combobox accessible?', a:'Use role="combobox" on input, role="listbox" on list, role="option" on items. aria-expanded to reflect open state. aria-activedescendant to point to focused option. Handle keyboard: ArrowUp/Down navigate options, Enter selects, Escape closes. Or just use native &lt;select&gt; — much simpler and free accessibility.' },
+
+  // ---- SEO ----
+  { id:'se1', cat:'seo', q:'Why do SPAs (React/Vue/Angular) have SEO challenges and how do you solve them?', a:'SPAs render content via JS — Googlebot may see an empty shell before JS executes. Solutions: <strong>SSR</strong> (Next.js, Nuxt) sends pre-rendered HTML. <strong>SSG</strong> for static content. <strong>Dynamic rendering</strong>: serve pre-rendered version to bots. <strong>Prerendering</strong> (react-snap). Google can index JS now but SSR is more reliable for critical SEO pages.' },
+  { id:'se2', cat:'seo', q:'What meta tags matter for SEO and social sharing?', a:'<strong>title</strong>: ~60 chars, most important. <strong>meta description</strong>: ~155 chars, affects CTR not ranking. <strong>canonical</strong>: prevents duplicate content. <strong>robots</strong>: noindex/nofollow. <strong>Open Graph</strong>: og:title, og:description, og:image (1200x630) for social cards. <strong>Twitter Card</strong>: twitter:card, twitter:image. hreflang for multilingual.' },
+  { id:'se3', cat:'seo', q:'What is a canonical URL and when do you need it?', a:'&lt;link rel="canonical" href="https://site.com/page"&gt;. Tells search engines which URL is the "master" version when duplicate content exists at multiple URLs (with/without www, http/https, trailing slash, query params like ?utm_source=). Prevents PageRank dilution. Always self-canonical on every page even without duplicates.' },
+  { id:'se4', cat:'seo', q:'Core Web Vitals impact on SEO rankings?', a:'Google uses CWV as a <strong>ranking signal</strong> (Page Experience update). <strong>LCP &lt;2.5s</strong>, <strong>INP &lt;200ms</strong>, <strong>CLS &lt;0.1</strong> are the thresholds for "Good". Poor CWV = ranking penalty. Measured via Chrome UX Report (real user data) not just Lighthouse. Field data matters more than lab data for ranking.' },
+  { id:'se5', cat:'seo', q:'robots.txt vs noindex meta tag — difference and when to use each?', a:'<strong>robots.txt</strong>: tells crawlers not to fetch the URL at all. But if other sites link to it, it can still appear in results (just without a snippet). <strong>noindex</strong>: page is crawled but excluded from index. Use noindex for: staging, thank-you pages, faceted nav. Use robots.txt to save crawl budget on truly non-indexable content.' },
+  { id:'se6', cat:'seo', q:'What is structured data (Schema.org) and why does it matter?', a:'JSON-LD (preferred), Microdata, or RDFa markup that describes content to search engines. Enables <strong>rich results</strong>: star ratings, FAQ accordions, breadcrumbs, product prices in SERP. Types: Article, Product, FAQPage, BreadcrumbList, JobPosting. Test with Google Rich Results Test. Doesn\'t directly boost ranking but improves CTR.' },
+  { id:'se7', cat:'seo', q:'How does page speed affect SEO and what are quick wins?', a:'Speed is a ranking factor — especially on mobile. Quick wins: compress images (WebP/AVIF), enable lazy loading, use a CDN, minify JS/CSS, reduce server response time (TTFB), eliminate render-blocking resources, use font-display:swap. Prioritise LCP element — ensure it loads fast. Measure with CrUX field data.' },
+  { id:'se8', cat:'seo', q:'What is hreflang and when do you need it?', a:'&lt;link rel="alternate" hreflang="en-us" href="..."&gt;. Tells Google which language/region version to serve to which users. Use for: multilingual sites, regional variants (en-US vs en-GB). Must be reciprocal (each page points to all variants including itself). Wrong hreflang implementation is a very common SEO bug.' },
+
+  // ---- BROWSER SECURITY ----
+  { id:'sec1', cat:'security', q:'XSS — 3 types and how each is exploited?', a:'<strong>Stored</strong>: malicious script saved to DB, served to all users (comment with &lt;script&gt;). <strong>Reflected</strong>: script in URL param, reflected back in response (phishing links). <strong>DOM-based</strong>: client-side JS writes attacker-controlled data to DOM (location.hash → innerHTML). Prevention: sanitise input, encode output, Content Security Policy, avoid innerHTML.' },
+  { id:'sec2', cat:'security', q:'Content Security Policy (CSP) — how to configure it correctly?', a:'HTTP header: <strong>Content-Security-Policy: default-src \'self\'; script-src \'self\' cdn.com; img-src *; style-src \'self\' \'unsafe-inline\'</strong>. Blocks inline scripts (XSS mitigation). Use nonces for inline: script-src \'nonce-{random}\'. report-uri/report-to to log violations. Start with report-only mode. Avoid unsafe-inline and unsafe-eval.' },
+  { id:'sec3', cat:'security', q:'CORS — simple request vs preflight. What triggers a preflight?', a:'<strong>Simple</strong>: GET/POST/HEAD with only basic headers — sent directly. <strong>Preflight</strong> (OPTIONS first): triggered by PUT/DELETE/PATCH, custom headers, Content-Type: application/json. Server must respond with Access-Control-Allow-Origin, -Methods, -Headers. Credentials: server needs allow-credentials:true AND specific origin (not *).' },
+  { id:'sec4', cat:'security', q:'CSRF — how does the attack work and what are the defences?', a:'Attacker tricks authenticated user\'s browser into making a request to your site using the user\'s cookies. Defences: <strong>SameSite=Lax/Strict</strong> cookies (modern standard). <strong>CSRF token</strong>: random value in form/header that attacker can\'t guess. <strong>Origin/Referer header check</strong>. Double-submit cookie pattern. SameSite=Lax is now the default in modern browsers.' },
+  { id:'sec5', cat:'security', q:'HTTPS and HSTS — what does HSTS do that HTTPS alone doesn\'t?', a:'HTTPS encrypts the connection but the first request can still be HTTP (before redirect). <strong>HSTS</strong> (Strict-Transport-Security: max-age=31536000; includeSubDomains) tells browser to <em>always</em> use HTTPS for this domain — no initial HTTP request ever. HSTS Preload list: browsers ship with your domain pre-loaded as HTTPS-only.' },
+  { id:'sec6', cat:'security', q:'iframe security — sandbox attribute and clickjacking?', a:'<strong>sandbox</strong>: restricts iframe (no scripts, forms, popups by default). Allow selectively: sandbox="allow-scripts allow-same-origin". <strong>X-Frame-Options: DENY/SAMEORIGIN</strong>: prevents your page being framed (clickjacking defence). Modern replacement: <strong>CSP frame-ancestors \'none\'</strong> or \'self\'. frame-ancestors is more flexible and overrides X-Frame-Options.' },
+  { id:'sec7', cat:'security', q:'Subresource Integrity (SRI) — what is it and when is it critical?', a:'Hash attribute on &lt;script&gt; and &lt;link&gt;: integrity="sha384-abc123". Browser checks fetched file matches hash — blocks if tampered. Critical for <strong>third-party CDN resources</strong>: if CDN is compromised, SRI prevents malicious code running. &lt;script src="cdn.com/lib.js" integrity="sha384-..." crossorigin="anonymous"&gt;' },
+  { id:'sec8', cat:'security', q:'Permissions Policy / Feature Policy — what does it control?', a:'HTTP header controlling which browser features are available: Permissions-Policy: camera=(), microphone=(), geolocation=(self). Disables features you don\'t use — reduces attack surface. Especially important for sites that embed third-party iframes (ads, widgets) — prevent them accessing camera/mic/location without permission.' },
+  { id:'sec9', cat:'security', q:'Cookie security recap — what\'s the ideal auth cookie config?', a:'Set-Cookie: sessionId=abc; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=3600. <strong>HttpOnly</strong>: no JS access. <strong>Secure</strong>: HTTPS only. <strong>SameSite=Strict</strong>: no cross-site sending (use Lax if you need cross-site nav). <strong>__Host- prefix</strong> for extra security. Short Max-Age. Never store sensitive data in the value itself.' },
+
+  // ---- MICRO-FRONTEND ----
+  { id:'mf1', cat:'microfrontend', q:'What problem does micro-frontend architecture solve?', a:'Monolithic frontends become bottlenecks: large teams, slow builds, release coupling, tech lock-in. MFE splits the UI into independently deployable units owned by separate teams. Each team: owns their domain, chooses their stack, deploys independently. Trade-off: added complexity in routing, shared state, and consistency.' },
+  { id:'mf2', cat:'microfrontend', q:'Module Federation (Webpack 5) — how does it work under the hood?', a:'Host app declares <strong>remotes</strong>; remote apps declare <strong>exposes</strong>. At runtime, host downloads remote\'s manifest, then lazy-loads only needed modules. Shared dependencies (React, lodash) configured once — loaded from one place. No build-time coupling. Each remote has its own build pipeline. Enables true runtime composition.' },
+  { id:'mf3', cat:'microfrontend', q:'How do you handle routing in a micro-frontend architecture?', a:'<strong>Shell owns top-level routing</strong>: /checkout → checkout MFE, /catalog → catalog MFE. MFEs handle sub-routes internally. Options: shell-managed (single router), each MFE manages its own routes (memory router internally). Avoid cross-MFE route coupling. Deep linking: shell must know which MFE to load for any given URL.' },
+  { id:'mf4', cat:'microfrontend', q:'How do micro-frontends share state? What are the patterns?', a:'<strong>Custom events</strong>: CustomEvent on window — loose coupling. <strong>Shared pub/sub bus</strong>: EventEmitter singleton. <strong>URL/query params</strong>: bookmarkable, sharable state. <strong>Shared library</strong>: auth token, user context via Module Federation shared scope. <strong>Backend</strong>: source of truth via API calls. Avoid tight state coupling between MFEs.' },
+  { id:'mf5', cat:'microfrontend', q:'CSS isolation in micro-frontends — how to prevent style leaks?', a:'<strong>Shadow DOM</strong>: true style encapsulation but limited by framework support. <strong>CSS Modules / scoped styles</strong>: generate unique class names. <strong>BEM with team prefix</strong>: .checkout-button vs .catalog-button. <strong>CSS-in-JS</strong>: scoped by default. <strong>CSS custom properties</strong> for shared design tokens. Agreed namespace conventions across teams.' },
+  { id:'mf6', cat:'microfrontend', q:'How is authentication handled across micro-frontends?', a:'Shell app handles auth (login/logout/token refresh). Auth token stored in memory or httpOnly cookie. MFEs receive user context via shared module or custom event. Each MFE\'s API calls include token. Shell intercepts 401s globally and triggers re-auth. MFEs should never own the auth flow — single responsibility.' },
+  { id:'mf7', cat:'microfrontend', q:'When should you NOT use micro-frontends?', a:'Small team (1-2 teams) — overhead outweighs benefit. Early-stage product — premature optimisation. When UI is tightly coupled by design (many cross-domain interactions). When you don\'t have independent deployment pipelines. MFE complexity: version mismatches, network waterfalls, duplicate dependencies, inconsistent UX. Rule: team topology should drive architecture.' },
+  { id:'mf8', cat:'microfrontend', q:'How do you maintain design consistency across micro-frontends?', a:'<strong>Shared design system</strong> as an npm package (owned by a platform team). <strong>Design tokens</strong> (CSS variables) for colour, spacing, typography. <strong>Storybook</strong> as shared component library. Version pinning strategy — teams opt-in to major updates. Regular design system guilds. Without this, MFEs will diverge visually over time.' },
+
+  // ---- PERFORMANCE ----
+  { id:'p1', cat:'performance', q:'RAIL model — what is it and what are the thresholds?', a:'<strong>R</strong>esponse: user input → &lt;100ms. <strong>A</strong>nimation: each frame &lt;16ms (60fps). <strong>I</strong>dle: use idle time for deferred work (requestIdleCallback). <strong>L</strong>oad: first meaningful content &lt;1s on fast network. A framework for thinking about performance from the user\'s perspective, not just metrics.' },
+  { id:'p2', cat:'performance', q:'Image optimisation — formats, lazy loading, responsive images?', a:'<strong>Format</strong>: AVIF > WebP > JPEG/PNG. Use &lt;picture&gt; with source for format fallback. <strong>Responsive</strong>: srcset + sizes so browser picks right resolution. <strong>Lazy loading</strong>: loading="lazy" (native) for below-fold images. <strong>LCP image</strong>: preload with &lt;link rel="preload"&gt; + fetchpriority="high". <strong>Dimensions</strong>: always set width/height to prevent CLS.' },
+  { id:'p3', cat:'performance', q:'Resource hints — preload vs prefetch vs preconnect vs dns-prefetch?', a:'<strong>preload</strong>: high priority, current page needs it soon (LCP image, critical font). <strong>prefetch</strong>: low priority, next navigation might need it (next page\'s JS). <strong>preconnect</strong>: establish connection (DNS+TCP+TLS) to third-party origin early. <strong>dns-prefetch</strong>: DNS only, cheaper fallback. Don\'t preload everything — competes with critical resources.' },
+  { id:'p4', cat:'performance', q:'Font loading performance — how to avoid FOUT and FOIT?', a:'<strong>FOIT</strong> (invisible text) vs <strong>FOUT</strong> (flash of unstyled text). Use font-display:swap — shows fallback immediately. <strong>Preload</strong> critical font files: &lt;link rel="preload" as="font"&gt;. Self-host fonts (avoid Google Fonts DNS lookup). Subset fonts (only needed characters). Variable fonts reduce requests. Match fallback metrics to reduce CLS on swap.' },
+  { id:'p5', cat:'performance', q:'React-specific performance optimisations — when to apply each?', a:'<strong>React.memo</strong>: skip re-render if props unchanged. <strong>useMemo</strong>: memoize expensive computation. <strong>useCallback</strong>: stable function ref for child props. <strong>Virtualisation</strong> (react-window): only render visible list rows. <strong>Code splitting</strong>: React.lazy per route. <strong>Concurrent features</strong>: useTransition for non-urgent updates. Profile first — don\'t optimise blindly.' },
+  { id:'p6', cat:'performance', q:'HTTP/2 vs HTTP/3 — key performance improvements?', a:'<strong>HTTP/2</strong>: multiplexing (multiple requests on one TCP connection), header compression (HPACK), server push. Fixes HTTP/1.1 head-of-line blocking at HTTP layer. <strong>HTTP/3</strong>: runs on QUIC (UDP), eliminates TCP head-of-line blocking, faster connection establishment (0-RTT resumption), better on lossy networks (mobile).' },
+  { id:'p7', cat:'performance', q:'Cache-Control headers — how to set the right caching strategy?', a:'<strong>Immutable assets</strong> (hashed filenames): Cache-Control: public, max-age=31536000, immutable. <strong>HTML</strong>: Cache-Control: no-cache (revalidate every time). <strong>API responses</strong>: private, max-age=60 or no-store for sensitive data. <strong>ETag/Last-Modified</strong>: conditional requests return 304 Not Modified. CDN: use s-maxage for shared cache.' },
+  { id:'p8', cat:'performance', q:'How do you measure real user performance? What tools and APIs?', a:'<strong>Performance API</strong>: performance.getEntriesByType(), PerformanceObserver for LCP/CLS/INP. <strong>Web Vitals library</strong>: onLCP, onCLS, onINP callbacks → send to analytics. <strong>Chrome UX Report</strong>: real field data. <strong>Lighthouse</strong>: lab data, good for CI. <strong>RUM</strong> (Real User Monitoring): DataDog, Sentry, or custom beacon. Field data always beats lab data for real-world truth.' },
+  { id:'p9', cat:'performance', q:'What causes layout thrashing and how do you prevent it?', a:'Reading layout properties (offsetHeight, getBoundingClientRect) then writing DOM styles forces the browser to recalculate layout synchronously — in a loop this is catastrophic. Fix: <strong>batch reads then writes</strong>. Use <strong>requestAnimationFrame</strong>. Use CSS transforms/opacity for animations (compositor-only, no layout). Libraries like FastDOM batch reads/writes automatically.' },
+  { id:'p10', cat:'performance', q:'What is the difference between repaint and reflow (layout)?', a:'<strong>Reflow (Layout)</strong>: geometry changed (width, height, margin, padding, DOM insertion) — browser recalculates layout of affected elements and descendants. Expensive. <strong>Repaint</strong>: visual change only (color, background, visibility) — no geometry change, less expensive. <strong>Composite</strong>: transform/opacity only — GPU handled, cheapest. Aim to keep animations at composite level.' },
+
+  // ---- NETWORK PERFORMANCE ----
+  { id:'np1', cat:'performance', q:'How does HTTP/2 multiplexing fix HTTP/1.1 connection inefficiency?', a:'HTTP/1.1: one request per connection — browsers open ~6 parallel connections to work around this, causing repeated TCP + TLS handshake overhead. HTTP/2: <strong>multiplexing</strong> sends multiple streams over a <strong>single TCP connection</strong> simultaneously. Reduces connections, reduces TLS handshakes, reduces latency. Always prefer HTTP/2 over HTTPS in modern apps.' },
+  { id:'np2', cat:'performance', q:'HTTP/2 eliminates head-of-line blocking — but there\'s a catch. What is it?', a:'HTTP/2 eliminates blocking at the <strong>HTTP layer</strong>. But if a TCP packet is lost, <strong>all streams on that connection are blocked</strong> waiting for retransmission — TCP-layer head-of-line blocking. HTTP/3 (QUIC over UDP) solves this — each stream is independent so one lost packet only blocks that stream, not others.' },
+  { id:'np3', cat:'performance', q:'HPACK vs Brotli vs Gzip — what does each compress and when?', a:'<strong>HPACK</strong>: HTTP/2 header compression only. Maintains a shared table between client and server — resends headers as indexed references instead of full strings. Dramatically reduces repeated cookies/auth token overhead. <strong>Brotli / Gzip</strong>: compress <em>response bodies</em> (HTML, CSS, JS, JSON) — set via Accept-Encoding / Content-Encoding headers. These are completely separate concerns.' },
+  { id:'np4', cat:'performance', q:'What are the 3 layers of caching and what does each one solve?', a:'<strong>Browser cache</strong>: Cache-Control headers (max-age, immutable) — eliminates network request for repeat visits. <strong>CDN cache</strong>: edge servers near user — reduces latency and origin server load. <strong>Application-level cache</strong>: e.g. Apollo Client normalised store — avoids duplicate API calls within the app, keeps UI in sync. Stale data is the core risk at every layer.' },
+  { id:'np5', cat:'performance', q:'Cache-Control strategy: what headers for hashed assets vs HTML?', a:'<strong>Hashed JS/CSS/images</strong> (e.g. main.a1b2c3.js): Cache-Control: public, max-age=31536000, immutable — cache forever, filename changes on update. <strong>HTML</strong>: Cache-Control: no-cache — revalidate every request (304 if unchanged). <strong>APIs</strong>: private, max-age=60 or no-store for sensitive data. Key insight: HTML is the entry point — if it\'s stale, users get old asset filenames.' },
+  { id:'np6', cat:'performance', q:'What is request batching and when should you use it?', a:'Combine multiple small requests into one: POST /batch [{event:\'click\'},{event:\'scroll\'}]. Reduces per-request overhead (headers, connection handling). Use for: <strong>analytics events</strong>, <strong>GraphQL query batching</strong>, bulk operations. Trade-offs: introduces a collection delay (e.g. debounce 100ms), more complex error handling (partial failures), harder to debug. Don\'t batch user-facing interactive requests — latency matters there.' },
+  { id:'np7', cat:'performance', q:'Brotli vs Gzip — which to use and why?', a:'<strong>Brotli</strong>: 15-25% better compression than Gzip, supported in all modern browsers. Best for static assets served over HTTPS. Set Accept-Encoding: br, gzip — server picks best supported. <strong>Gzip</strong>: universal fallback, faster compression (better for dynamic responses). Best practice: pre-compress static files to Brotli at build time, serve Gzip dynamically as fallback. Never skip compression for HTML/CSS/JS.' },
+  { id:'np8', cat:'performance', q:'Code splitting — what\'s the right granularity and what\'s the tradeoff of going too small?', a:'<strong>Route-level splitting</strong>: baseline — each page loads only its own JS. <strong>Component-level</strong>: heavy widgets (charts, editors) loaded on demand. <strong>Too many tiny chunks</strong>: request overhead increases (each HTTP/2 stream still has overhead), waterfall of small fetches, harder caching. Rule: aim for chunks 50–150KB. Profile with webpack-bundle-analyzer before splitting.' },
+  { id:'np9', cat:'performance', q:'What to compress, what not to, and why does it not help for images/videos?', a:'<strong>Compress</strong>: HTML, CSS, JS, JSON, SVG, plain text. <strong>Don\'t compress</strong>: JPEG, PNG, WebP, AVIF, MP4, ZIP, WOFF2 — already compressed. Compressing pre-compressed files wastes CPU and can even increase size. For images: use right format (AVIF > WebP > JPEG) and right dimensions instead. WOFF2 fonts are already compressed.' },
+  { id:'np10', cat:'performance', q:'One-line interview answer: how do you approach web network performance optimisation?', a:'"Reduce <strong>connections</strong> with HTTP/2 multiplexing. Reduce <strong>data size</strong> with Brotli/Gzip body compression and HPACK header compression. Reduce <strong>request count</strong> with batching and multi-layer caching (browser, CDN, app). Reduce <strong>JS payload</strong> with code splitting. Reduce <strong>image weight</strong> with modern formats, right sizing, and lazy loading."' },
 ];
+
+// ============================================================
 
 // ============================================================
 // STATE
 // ============================================================
 let cards = [];
-let studyState = {}; // cardId → { known: bool, seenCount: int }
-let currentStudyCat = 'all';
-let currentCardsCat = 'all';
+let studyState = {};
 let studyDeck = [];
 let studyIndex = 0;
+
+// Two-level selection state
+let studyBroad = 'all'; let studySub = 'all';
+let cardsBroad = 'all'; let cardsSub = 'all';
 
 function loadState() {
   try {
@@ -404,27 +548,63 @@ function goTo(page, btn) {
 }
 
 // ============================================================
-// CATEGORY CHIPS
+// TWO-LEVEL TOPIC SELECTOR
 // ============================================================
-function buildCatChips(containerId, activeCat, onChange) {
-  const el = document.getElementById(containerId);
-  const allCats = ['all', ...Object.keys(CATEGORIES)];
-  el.innerHTML = allCats.map(c => `
-    <div class="cat-chip ${c===activeCat?'active':''}" onclick="(${onChange.toString()})('${c}')">
-      ${c==='all' ? 'All' : CATEGORIES[c].label}
-    </div>`).join('');
+function buildTopicSelector(broadId, subId, activeBroad, activeSub, onBroad, onSub) {
+  // Broad buttons
+  const broadEl = document.getElementById(broadId);
+  broadEl.innerHTML = BROAD_TOPICS.map(t => {
+    const isActive = t.key === activeBroad;
+    const style = isActive ? `background:${t.color}22;border-color:${t.color};color:${t.color}` : '';
+    return `<button class="broad-btn ${isActive?'active':''}" style="${style}" onclick="${onBroad}('${t.key}')">
+      <span class="broad-icon">${t.icon}</span>${t.label}
+    </button>`;
+  }).join('');
+
+  // Sub chips
+  const subEl = document.getElementById(subId);
+  const broad = BROAD_TOPICS.find(t => t.key === activeBroad);
+  if (!broad || activeBroad === 'all' || broad.subs.length <= 1) {
+    subEl.innerHTML = '';
+    return;
+  }
+  const subCats = ['all', ...broad.subs];
+  subEl.innerHTML = subCats.map(s => {
+    const isActive = s === activeSub;
+    const cat = s === 'all' ? null : CATEGORIES[s];
+    const style = isActive && cat ? `background:${cat.color}33;border-color:${cat.color};color:${cat.color}` : isActive ? 'border-color:var(--accent);color:var(--accent)' : '';
+    return `<div class="sub-chip ${isActive?'active':''}" style="${style}" onclick="${onSub}('${s}')">
+      ${s === 'all' ? 'All' : cat?.label || s}
+    </div>`;
+  }).join('');
+}
+
+function getFilteredCards(broad, sub) {
+  const broadTopic = BROAD_TOPICS.find(t => t.key === broad);
+  if (broad === 'all') return cards;
+  if (sub !== 'all') return cards.filter(c => c.cat === sub);
+  return cards.filter(c => broadTopic?.subs.includes(c.cat));
 }
 
 // ============================================================
 // STUDY PAGE
 // ============================================================
 function renderStudy() {
-  buildCatChips('study-cats', currentStudyCat, (c) => { currentStudyCat = c; buildStudyDeck(); renderStudy(); });
+  buildTopicSelector('study-broad','study-subs', studyBroad, studySub,
+    'setStudyBroad', 'setStudySub');
   buildStudyDeck();
   renderStudyCard();
 }
+function setStudyBroad(key) {
+  studyBroad = key; studySub = 'all'; studyIndex = 0;
+  buildStudyDeck(); renderStudy();
+}
+function setStudySub(key) {
+  studySub = key; studyIndex = 0;
+  buildStudyDeck(); renderStudy();
+}
 function buildStudyDeck() {
-  const pool = currentStudyCat === 'all' ? cards : cards.filter(c => c.cat === currentStudyCat);
+  const pool = getFilteredCards(studyBroad, studySub);
   // prioritise unseen / unknown
   studyDeck = [...pool].sort((a,b) => {
     const sa = studyState[a.id];
@@ -503,9 +683,12 @@ function setupSwipe(el) {
 // ============================================================
 // CARDS LIST PAGE
 // ============================================================
+function setCardsBroad(key) { cardsBroad = key; cardsSub = 'all'; renderCards(); }
+function setCardsSub(key)   { cardsSub = key; renderCards(); }
 function renderCards() {
-  buildCatChips('cards-cats', currentCardsCat, (c) => { currentCardsCat = c; renderCards(); });
-  const filtered = currentCardsCat === 'all' ? cards : cards.filter(c => c.cat === currentCardsCat);
+  buildTopicSelector('cards-broad','cards-subs', cardsBroad, cardsSub,
+    'setCardsBroad', 'setCardsSub');
+  const filtered = getFilteredCards(cardsBroad, cardsSub);
   const list = document.getElementById('cards-list');
   if (!filtered.length) {
     list.innerHTML = `<div class="empty-state"><h3>No cards</h3><p>Add some from the Add tab.</p></div>`;
@@ -645,14 +828,14 @@ function renderStats() {
   document.getElementById('stat-due').textContent = due;
 
   const catEl = document.getElementById('cat-progress-list');
-  catEl.innerHTML = Object.entries(CATEGORIES).map(([key, cat]) => {
-    const catCards = cards.filter(c => c.cat === key);
-    const catKnown = catCards.filter(c => studyState[c.id]?.known).length;
-    const pct = catCards.length ? Math.round(catKnown/catCards.length*100) : 0;
+  catEl.innerHTML = BROAD_TOPICS.filter(t => t.key !== 'all').map(t => {
+    const topicCards = cards.filter(c => t.subs.includes(c.cat));
+    const topicKnown = topicCards.filter(c => studyState[c.id]?.known).length;
+    const pct = topicCards.length ? Math.round(topicKnown/topicCards.length*100) : 0;
     return `
       <div class="cat-progress">
-        <div class="cat-progress-label"><span>${cat.label}</span><span>${catKnown}/${catCards.length}</span></div>
-        <div class="cat-progress-bar"><div class="cat-progress-fill" style="width:${pct}%;background:${cat.color}"></div></div>
+        <div class="cat-progress-label"><span>${t.icon} ${t.label}</span><span>${topicKnown}/${topicCards.length}</span></div>
+        <div class="cat-progress-bar"><div class="cat-progress-fill" style="width:${pct}%;background:${t.color}"></div></div>
       </div>
     `;
   }).join('');
