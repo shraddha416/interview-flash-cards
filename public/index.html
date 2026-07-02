@@ -346,6 +346,7 @@ const CATEGORIES = {
   binarysearch: { label: 'Binary Search',   color: '#22d3ee' },
   leetcode:     { label: 'LeetCode',        color: '#f87171' },
   behavioral:   { label: 'Behavioural',     color: '#fbbf24' },
+  ai_tips:      { label: 'AI Tips',         color: '#a78bfa' },
 };
 
 const BROAD_TOPICS = [
@@ -354,7 +355,7 @@ const BROAD_TOPICS = [
   { key: 'react_native',  label: 'React Native',  icon: '📱', color: '#61dafb', subs: ['reactnative'] },
   { key: 'system_design', label: 'System Design', icon: '🏗️', color: '#5eead4', subs: ['microfrontend','sd_fundamentals','sd_infra','sd_database','sd_comms'] },
   { key: 'dsalgo',        label: 'DS & Algo',     icon: '🧮', color: '#fbbf24', subs: ['dsalgo','binarysearch','leetcode'] },
-  { key: 'behavioural',   label: 'Behavioural',   icon: '🤝', color: '#f87171', subs: ['behavioral'] },
+  { key: 'behavioural',   label: 'Behavioural',   icon: '🤝', color: '#f87171', subs: ['behavioral', 'ai_tips'] },
 ];
 
 const SEED_CARDS = [
@@ -420,6 +421,13 @@ const SEED_CARDS = [
   { id:'sdc6', cat:'sd_comms', q:'Back pressure — what is it and why does it matter?', a:'When consumers can\'t keep up with producers, queues grow unboundedly → memory exhaustion → cache misses → disk reads → cascading failure. <strong>Back pressure</strong>: limit queue size. When full, reject new requests with 503 (server busy). Clients must retry with <strong>exponential backoff</strong>. Forces the system to degrade gracefully under load rather than crashing. Essential for resilient async architectures.' },
   { id:'sdc7', cat:'sd_comms', q:'What is service discovery and why do microservices need it?', a:'As microservices scale, instances start/stop dynamically — hardcoded IPs don\'t work. Service discovery lets services find each other. <strong>Client-side</strong>: service queries a registry (Consul, Etcd, Zookeeper), gets available instances, load-balances itself. <strong>Server-side</strong>: load balancer queries registry and routes. Registry tracks: service name, address, port, health status. Health checks (HTTP endpoint) automatically remove failed instances.' },
   { id:'sdc8', cat:'sd_comms', q:'What is an API rate limiter and how would you design one?', a:'Limits requests per client per time window. Algorithms: <strong>Token bucket</strong>: refill tokens at fixed rate, consume per request — allows bursts. <strong>Leaky bucket</strong>: process at fixed rate — smooths traffic. <strong>Fixed window counter</strong>: simple but boundary spike problem. <strong>Sliding window log</strong>: precise but memory heavy. Store counters in Redis (atomic INCR + EXPIRE). Return 429 Too Many Requests when exceeded. Rate limit by: IP, user ID, API key.' },
+
+  // ---- AI TIPS ----
+  { id:'ai1', cat:'ai_tips', q:'Why does a vague AI prompt actually cost MORE context space than a specific one?', a:'A vague prompt forces Claude to <strong>explore your codebase/problem itself</strong> to fill in the gaps — that exploration (file reads, searches, reasoning) consumes far more context tokens than a detailed upfront prompt would. Specificity = less exploration needed = less context burned. Rule: invest 30 seconds writing a precise prompt to save minutes of context blowout.' },
+  { id:'ai2', cat:'ai_tips', q:'How do MCP servers affect context space and how do you manage them?', a:'MCP servers load <strong>all their available tools into context by default</strong> — even tools you never use in that session. Every connected server adds token overhead at the start of every turn. Fix: <strong>disable servers irrelevant to your current task</strong>. Alternative: use <strong>Skills</strong> — they work like MCP servers but tools are loaded on-demand only, not pre-loaded. Fewer active MCPs = cleaner context.' },
+  { id:'ai3', cat:'ai_tips', q:'When should you use a subagent and what exactly does it save?', a:'Use subagents for tasks where you only need <strong>the answer</strong>, not the journey (e.g. "where is the auth endpoint?", "what does this file do?"). Subagents run in a <strong>completely separate context window</strong> — they do all the heavy exploration work, then return just a summary to your main agent. Main context stays clean. Bonus: subagents can run in parallel, making complex tasks faster too.' },
+  { id:'ai4', cat:'ai_tips', q:'3-step formula for context-efficient AI usage?', a:'<strong>1. Be specific upfront</strong>: include file paths, line numbers, exact constraints — saves exploration tokens. <strong>2. Manage MCP servers</strong>: turn off irrelevant servers; prefer Skills (load on-demand). <strong>3. Use subagents for research</strong>: any "find/locate/explain" task → subagent, returns only the answer. Together: specific prompt + minimal MCPs + subagents for lookups = dramatically longer productive sessions without hitting context limits.' },
+  { id:'ai5', cat:'ai_tips', q:'What is context window and why does it matter when working with AI?', a:'The context window is the total amount of text (tokens) an AI model can "see" at once — your prompt, conversation history, tool results, file contents, all count toward it. When it fills up, older content gets dropped or the model degrades. In coding agents like Claude: every file read, search result, and tool call burns context. Managing context = managing how long the AI stays effective and accurate in a session.' },
 
   // ---- BINARY SEARCH ----
   { id:'bs1', cat:'binarysearch', q:'lo &lt;= hi vs lo &lt; hi — which template and when? (Most confused point)', a:'<strong>lo &lt;= hi</strong>: use when you return from INSIDE the loop (exact match). Loop ends when lo > hi = no answer. hi = n-1 initially.<br><strong>lo &lt; hi</strong>: use when lo and hi converge TO the answer. Loop ends when lo == hi = that IS your answer. hi = n initially for insert position. <em>Mixing these up causes infinite loops or missing the answer.</em>' },
